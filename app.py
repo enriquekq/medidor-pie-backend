@@ -1,3 +1,4 @@
+import descargar_modelo
 from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from ultralytics import YOLO
@@ -16,7 +17,7 @@ app.add_middleware(
 
 # Ruta local del modelo y enlace de Google Drive
 MODEL_PATH = "modelos/best.pt"
-DRIVE_ID = "TU_ID_DE_GOOGLE_DRIVE"  # 👈 Reemplaza esto con tu ID real
+DRIVE_ID = "1HQecdeSAXIjONkUMQAqPiTfUCoNY7uoA"  # 👈 Reemplaza esto con tu ID real
 
 # Descargar modelo desde Google Drive si no existe
 os.makedirs("modelos", exist_ok=True)
