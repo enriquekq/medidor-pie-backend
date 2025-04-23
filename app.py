@@ -1,12 +1,11 @@
 from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-import shutil
+from ultralytics import YOLO
 import os
+import gdown
 
 app = FastAPI()
 
-# Permitir peticiones desde cualquier origen
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -15,24 +14,37 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Ruta local del modelo y enlace de Google Drive
+MODEL_PATH = "modelos/best.pt"
+DRIVE_ID = "TU_ID_DE_GOOGLE_DRIVE"  # 👈 Reemplaza esto con tu ID real
+
+# Descargar modelo desde Google Drive si no existe
+os.makedirs("modelos", exist_ok=True)
+if not os.path.exists(MODEL_PATH):
+    url = f"https://drive.google.com/uc?id={DRIVE_ID}"
+    gdown.download(url, MODEL_PATH, quiet=False)
+
+# Cargar modelo
+modelo = YOLO(MODEL_PATH)
+
 @app.get("/")
 def read_root():
-    return {"message": "Servidor funcionando"}
+    return {"mensaje": "API del medidor de pie activo."}
 
 @app.post("/api/detectar_billete")
 async def detectar_billete(file: UploadFile = File(...)):
-    try:
-        save_path = f"static/{file.filename}"
-        with open(save_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+    contents = await file.read()
+    path = f"static/{file.filename}"
+    os.makedirs("static", exist_ok=True)
+    with open(path, "wb") as f:
+        f.write(contents)
 
-        resultado = {
-            "estatus": "éxito",
-            "billete": "100 pesos",
-            "tamaño": "134 mm x 66 mm",
-            "archivo": file.filename,
-        }
-        return JSONResponse(content=resultado)
+    # Predicción
+    resultados = modelo(path)[0]
+    clases = resultados.names
+    cajas = resultados.boxes
 
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
+    return {
+        "clases": [clases[int(c.item())] for c in cajas.cls],
+        "confianzas": [float(c.item()) for c in cajas.conf]
+    }
