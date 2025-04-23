@@ -26,7 +26,12 @@ if not os.path.exists(MODEL_PATH):
     gdown.download(url, MODEL_PATH, quiet=False)
 
 # Cargar modelo
-modelo = YOLO(MODEL_PATH)
+modelo = None  # variable global
+
+@app.on_event("startup")
+def cargar_modelo():
+    global modelo
+    modelo = YOLO(MODEL_PATH)
 
 @app.get("/")
 def read_root():
